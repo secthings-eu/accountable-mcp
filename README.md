@@ -68,8 +68,10 @@ write only the approved entries. Contradictory links surface as `conflicts` to f
 | `.claude/skills/accountable-mcp-setup` | Prerequisites, install, registration, every login path (Accountable/Camoufox, Bitwarden, Gmail OAuth, AliExpress, Photos), where state lives, troubleshooting table, hard rules on credentials |
 | `.claude/skills/accountable-bookkeeping` | Reconciliation methodology: measure the backlog → link existing documents → fetch/import missing ones → classify what never has a document → VAT/flag quality → document-less expenses → duplicates → closing report; plus the gotchas learned on real data |
 
-Claude Code discovers them from `.claude/skills/` when the repository folder is open. To use them
-from other projects, copy the two folders into `~/.claude/skills/`.
+`scripts/setup.sh` installs them: for Claude Code they are symlinked into `~/.claude/skills/` (available in
+every project, kept current by `git pull`); for Claude Desktop, which has no skill files, it generates
+`~/.config/accountable-mcp/claude-desktop-instructions.md` (and copies it to the clipboard on macOS) to paste
+into the Project's custom instructions. They are also auto-discovered when the repository folder is open.
 
 ## Tools
 

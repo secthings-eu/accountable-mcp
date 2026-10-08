@@ -2,7 +2,7 @@
 # One-shot setup: dependencies (incl. the Camoufox engine), build, config dir, and registration of the
 # MCP server in Claude Code and/or Claude Desktop. Idempotent; re-run any time. Never asks for or stores credentials.
 #
-#   ./scripts/setup.sh [--target code|desktop|both] [--skip-install]
+#   ./scripts/setup.sh [--target code|desktop|both] [--skip-install] [--no-skills]
 #
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -10,11 +10,13 @@ cd "$(dirname "$0")/.."
 CONFIG_DIR="${ACCOUNTABLE_CONFIG_DIR:-$HOME/.config/accountable-mcp}"
 TARGET=""
 SKIP_INSTALL=0
+INSTALL_SKILLS=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --target) TARGET="$2"; shift 2 ;;
     --target=*) TARGET="${1#*=}"; shift ;;
     --skip-install) SKIP_INSTALL=1; shift ;;
+    --no-skills) INSTALL_SKILLS=0; shift ;;
     -h|--help) sed -n 2,6p "$0"; exit 0 ;;
     *) echo "unknown option $1"; exit 1 ;;
   esac
@@ -22,7 +24,7 @@ done
 
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 
-say "1/4  Checking prerequisites"
+say "1/5  Checking prerequisites"
 command -v node >/dev/null || { echo "Node.js >= 20 is required (https://nodejs.org)."; exit 1; }
 NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
 [ "$NODE_MAJOR" -ge 20 ] || { echo "Node.js >= 20 required, found $(node -v)."; exit 1; }
@@ -35,19 +37,19 @@ case "$(uname -s)" in
 esac
 
 if [ "$SKIP_INSTALL" = 0 ]; then
-  say "2/4  Installing dependencies and building"
+  say "2/5  Installing dependencies and building"
   npm install            # camofox-browser's postinstall fetches the Camoufox engine (~2.5 GB, one time)
   npx camoufox-js fetch >/dev/null 2>&1 || true   # no-op when already cached
   npm run build
 else
-  say "2/4  Skipping install/build (--skip-install)"
+  say "2/5  Skipping install/build (--skip-install)"
 fi
 
-say "3/4  Preparing config directory"
+say "3/5  Preparing config directory"
 mkdir -p "$CONFIG_DIR" && chmod 700 "$CONFIG_DIR"
 echo "$CONFIG_DIR (sessions, Camoufox profiles, invoice ledger, your providers.json)"
 
-say "4/4  Registering the MCP server"
+say "4/5  Registering the MCP server"
 if [ -z "$TARGET" ]; then
   if [ -t 0 ]; then
     echo "Where do you want to use it?  [1] Claude Code  [2] Claude Desktop  [3] both  (default 1)"
@@ -92,7 +94,40 @@ register_desktop() {
     j.mcpServers.accountable = { command: process.env.NODE_BIN, args: [process.env.ENTRY] };
     fs.writeFileSync(p, JSON.stringify(j, null, 2) + "\n");
     console.log("Claude Desktop: wrote " + p + " (restart Claude Desktop to load it)");'
-  echo "Claude Desktop: skills are a Claude Code feature; for Desktop, paste the relevant SKILL.md into the project instructions."
+}
+
+# Skills: Claude Code reads ~/.claude/skills/<name>/SKILL.md in every project (symlinked so `git pull` keeps
+# them current); Claude Desktop has no skill files, so we generate one instructions document to paste into a
+# Project's custom instructions.
+install_skills_code() {
+  local dst="$HOME/.claude/skills"
+  mkdir -p "$dst"
+  for d in .claude/skills/*/; do
+    local name; name="$(basename "$d")"
+    if [ -L "$dst/$name" ] || [ ! -e "$dst/$name" ]; then
+      ln -sfn "$PWD/.claude/skills/$name" "$dst/$name" && echo "Claude Code: skill '$name' linked into $dst (available in every project)"
+    else
+      echo "Claude Code: $dst/$name exists and is not a symlink; left untouched (delete it to link the repo version)"
+    fi
+  done
+}
+
+install_skills_desktop() {
+  local out="$CONFIG_DIR/claude-desktop-instructions.md"
+  {
+    echo "# Accountable MCP — instructions for Claude Desktop"
+    echo
+    echo "Paste this file into the custom instructions of the Claude Desktop Project in which the 'accountable' MCP server is used."
+    echo "Generated from the repository's skills by scripts/setup.sh; re-run the script after updating the repo."
+    for d in .claude/skills/*/; do
+      echo; echo "---"; echo
+      # drop the YAML front matter, keep the body
+      awk 'BEGIN{fm=0} NR==1 && $0=="---"{fm=1; next} fm==1 && $0=="---"{fm=2; next} fm!=1{print}' "$d/SKILL.md"
+    done
+  } > "$out"
+  echo "Claude Desktop: instructions written to $out"
+  echo "  → Claude Desktop: Projects → your project → 'Set project instructions' → paste the file's content."
+  case "$(uname -s)" in Darwin) pbcopy < "$out" 2>/dev/null && echo "  (copied to the clipboard)";; esac
 }
 
 case "$TARGET" in
@@ -101,6 +136,17 @@ case "$TARGET" in
   both) register_code; register_desktop ;;
   *) echo "invalid --target '$TARGET' (code|desktop|both)"; exit 1 ;;
 esac
+
+say "5/5  Installing the skills"
+if [ "$INSTALL_SKILLS" = 1 ]; then
+  case "$TARGET" in
+    code) install_skills_code ;;
+    desktop) install_skills_desktop ;;
+    both) install_skills_code; install_skills_desktop ;;
+  esac
+else
+  echo "skipped (--no-skills)"
+fi
 
 cat <<EOT
 
@@ -113,7 +159,7 @@ Done. Next, from inside Claude Code (recommended) or a terminal:
   - Learn your suppliers (after the Accountable login): tool accountable_learn_suppliers  or  npm run learn-suppliers
                         → writes name aliases learned from your linked payments to $CONFIG_DIR/providers.json
   - Your own providers: $CONFIG_DIR/providers.json (see src/invoices/localConfig.ts for the format)
-Skills shipped with this repo (auto-discovered by Claude Code when the folder is open):
-  .claude/skills/accountable-mcp-setup   — installation, logins, troubleshooting
-  .claude/skills/accountable-bookkeeping — quarterly reconciliation methodology
+Skills (installed above; also auto-discovered by Claude Code when this folder is open):
+  accountable-mcp-setup   — installation, logins, agent-reviewed configuration, troubleshooting
+  accountable-bookkeeping — quarterly reconciliation methodology
 EOT

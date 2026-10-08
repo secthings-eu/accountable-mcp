@@ -30,9 +30,11 @@ local REST server) and `pdf-lib`. No global installs, no Chrome, no Python.
 ./scripts/setup.sh --target code      # or desktop | both; prompts when omitted
 ```
 
-It checks prerequisites, runs `npm install` (+ Camoufox engine), builds, creates the config dir and
+It checks prerequisites, runs `npm install` (+ Camoufox engine), builds, creates the config dir,
 registers the server in Claude Code (`claude mcp add`, user scope) and/or Claude Desktop
-(`claude_desktop_config.json`, merged, absolute node path).
+(`claude_desktop_config.json`, merged, absolute node path) and installs the skills: symlinks into
+`~/.claude/skills/` for Claude Code; a generated `~/.config/accountable-mcp/claude-desktop-instructions.md`
+to paste into the Desktop Project's custom instructions (`--no-skills` to skip).
 
 Then, inside Claude Code: `accountable_login_start` (site `accountable`) → the user signs in (or
 `accountable_login_fill` from Bitwarden) → `accountable_login_check` until `logged_in` →
@@ -66,8 +68,8 @@ npm run build        # tsc → dist/
 
 Claude Desktop: `./scripts/setup.sh --target desktop` (or `both`) merges an `accountable` entry into
 `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) / `~/.config/Claude/…` (Linux);
-restart Claude Desktop. Skills are not loaded by Desktop — paste the relevant SKILL.md into the project
-instructions there.
+restart Claude Desktop. Desktop has no skill files: the script writes `claude-desktop-instructions.md`
+(both skills merged) into the config dir; the user pastes it into the Project's custom instructions.
 
 Claude Code, two ways; the setup script does the first:
 
