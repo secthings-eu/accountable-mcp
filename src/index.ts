@@ -13,10 +13,21 @@ import { registerRevenueTools } from "./tools/revenues.js";
 import { registerTransactionTools, registerTransactionWriteTools } from "./tools/transactions.js";
 import { registerSessionTools } from "./tools/session.js";
 import { registerLoginTools } from "./tools/login.js";
+import { registerLearnTools } from "./tools/learn.js";
+import { learnSupplierAliases, saveLearnedAliases } from "./services/learn.js";
 
 async function main(): Promise<void> {
   if (process.argv[2] === "login") {
     await login();
+    return;
+  }
+  if (process.argv[2] === "learn-suppliers") {
+    // Learn supplier aliases from the user's own linked transactions → ~/.config/accountable-mcp/providers.json
+    const since = process.argv[3] ?? `${new Date().getUTCFullYear() - 1}-01-01`;
+    const { aliases, links_examined } = await learnSupplierAliases(since, new Date().toISOString().slice(0, 10));
+    for (const a of aliases) process.stdout.write(`${a.display.padEnd(32)} ← /${a.pattern}/i   (${a.count}× e.g. "${a.seen[0]}")\n`);
+    const saved = await saveLearnedAliases(aliases);
+    process.stdout.write(`${links_examined} linked payments examined; ${saved.added} new alias(es), ${saved.total} learned in ${saved.file}\n`);
     return;
   }
   if (process.argv[2] === "browser-login") {
@@ -43,6 +54,7 @@ async function main(): Promise<void> {
   const server = new McpServer({ name: "accountable-mcp-server", version: "0.1.0" });
   registerSessionTools(server);
   registerLoginTools(server);
+  registerLearnTools(server);
   registerOverviewTools(server);
   registerExpenseTools(server);
   registerExpenseWriteTools(server);

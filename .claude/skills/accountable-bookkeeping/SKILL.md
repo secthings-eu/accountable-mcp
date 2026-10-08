@@ -23,6 +23,11 @@ re-run.
   to me personally → not an invoice") and apply them without re-asking.
 - Report faithfully: what was linked, what was classified, what is still open and why.
 
+## 0. Before a pass
+
+If the account is new to this MCP, run `accountable_learn_suppliers` first so bank texts resolve to the
+supplier names used on expenses (see the setup skill, step 4b).
+
 ## 1. Measure the backlog
 
 `accountable_list_transactions` with `to_classify: true` for the period (page through), then group

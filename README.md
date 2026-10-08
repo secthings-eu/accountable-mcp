@@ -42,6 +42,7 @@ Then in Claude Code (the skills are picked up automatically when the folder is o
 accountable_login_start  {site: "accountable"}     → a Camoufox window opens, sign in there
 accountable_login_check  {site: "accountable"}     → "logged_in": session stored, renews itself
 accountable_session_status
+accountable_learn_suppliers                        → learns your suppliers' bank names into ~/.config/accountable-mcp/providers.json
 ```
 
 Optional: Gmail (`google-oauth.json` + `accountable_login_start {site:"gmail"}`), AliExpress
@@ -77,6 +78,7 @@ from other projects, copy the two folders into `~/.claude/skills/`.
 | `accountable_classify_transaction` (incl. tax periods), `accountable_link_transaction` (1 payment → N documents), `accountable_unlink_transaction_document`, `accountable_unclassify_transaction` | write |
 | `accountable_list_revenues`, `accountable_get_revenue` | read |
 | `accountable_list_invoice_providers`, `accountable_fetch_invoices`, `accountable_import_invoices` | invoices |
+| `accountable_learn_suppliers` (bank text → supplier aliases learned from your own linked payments, stored locally) | setup |
 
 All tools were verified live (test account for writes, then real data). Not implemented yet:
 revenue creation, VAT return grids, exports, portal modules for suppliers without email invoices

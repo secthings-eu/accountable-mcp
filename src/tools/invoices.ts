@@ -20,7 +20,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const txDate = (t: Transaction) => (t.valueDate ?? t.executionDate ?? "").slice(0, 10);
 /**
  * Supplier key of a bank transaction. The merchant text before "Paiement/Virement/…" in the communication
- * often names the product (e.g. counterparty "Google", communication "Google YouTubePremium …"), so a known
+ * often names the product (e.g. counterparty "Google", communication "Google Workspace …"), so a known
  * brand found there wins over the bare counterparty. The rest of the communication is ignored because it
  * contains the cardholder name.
  */
@@ -193,7 +193,7 @@ export function registerInvoiceTools(server: McpServer): void {
       inputSchema: {
         source_refs: z.array(z.string()).max(50).default([]).describe("Refs returned by accountable_fetch_invoices"),
         files: z
-          .array(z.object({ path: z.string(), provider: z.string().describe("Provider id or supplier name, e.g. youtube-premium") }))
+          .array(z.object({ path: z.string(), provider: z.string().describe("Provider id or supplier name, e.g. google-workspace") }))
           .max(50)
           .default([])
           .describe("Local invoice files not fetched by a module (e.g. downloaded by hand). Date is read from a YYYY-MM-DD filename prefix."),

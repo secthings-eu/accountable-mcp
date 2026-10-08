@@ -124,6 +124,14 @@ bw unlock --raw > ~/.config/accountable-mcp/bw-session && chmod 600 ~/.config/ac
 - Only if Accountable logged that profile out does the user see "Refresh token expired … run
   browser-login" → repeat the in-session login.
 
+## 4b. Learn the user's suppliers (once logged in)
+
+Call `accountable_learn_suppliers` (default: links since 1 January of last year; `dry_run: true` to only
+propose). It reads bank transactions already linked to expenses and stores "bank text → supplier" aliases
+in `~/.config/accountable-mcp/providers.json` (`learned_aliases`), which the importer's payment matching
+and the coverage reports use. Show the user the proposed list; prune odd ones by editing the file.
+Re-run after a reconciliation pass so new suppliers are picked up. Restart the MCP afterwards.
+
 ## 5. Gmail (invoice fetching, read-only)
 
 1. Google Cloud console → project → enable **Gmail API**.

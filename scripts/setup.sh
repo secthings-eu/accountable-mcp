@@ -110,7 +110,9 @@ Done. Next, from inside Claude Code (recommended) or a terminal:
   - Gmail (optional):   put a Google OAuth "Desktop app" client JSON at $CONFIG_DIR/google-oauth.json,
                         then npm run login:gmail -- work
   - AliExpress (opt.):  npm run login:aliexpress
-  - Your suppliers:     $CONFIG_DIR/providers.json (see src/invoices/localConfig.ts for the format)
+  - Learn your suppliers (after the Accountable login): tool accountable_learn_suppliers  or  npm run learn-suppliers
+                        → writes name aliases learned from your linked payments to $CONFIG_DIR/providers.json
+  - Your own providers: $CONFIG_DIR/providers.json (see src/invoices/localConfig.ts for the format)
 Skills shipped with this repo (auto-discovered by Claude Code when the folder is open):
   .claude/skills/accountable-mcp-setup   — installation, logins, troubleshooting
   .claude/skills/accountable-bookkeeping — quarterly reconciliation methodology

@@ -15,7 +15,8 @@
     "login": "node dist/index.js login",
     "login:accountable": "node dist/index.js browser-login accountable",
     "login:gmail": "node dist/index.js gmail-login",
-    "login:aliexpress": "node dist/index.js browser-login aliexpress"
+    "login:aliexpress": "node dist/index.js browser-login aliexpress",
+    "learn-suppliers": "node dist/index.js learn-suppliers"
   },
   "engines": {
     "node": ">=20"
