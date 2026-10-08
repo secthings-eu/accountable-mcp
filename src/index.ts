@@ -23,12 +23,17 @@ async function main(): Promise<void> {
   }
   if (process.argv[2] === "learn-suppliers") {
     // Learn supplier aliases from the user's own linked transactions → ~/.config/accountable-mcp/providers.json
-    const since = process.argv[3] ?? `${new Date().getUTCFullYear() - 1}-01-01`;
+    const since = process.argv.find((a, i) => i >= 3 && /^\d{4}-\d{2}-\d{2}$/.test(a)) ?? `${new Date().getUTCFullYear() - 1}-01-01`;
     const { aliases, conflicts, links_examined } = await learnSupplierAliases(since, new Date().toISOString().slice(0, 10));
     for (const a of aliases) process.stdout.write(`${a.display.padEnd(32)} ← /${a.pattern}/i   (${a.count}× e.g. "${a.seen[0]}")\n`);
     for (const c of conflicts) process.stdout.write(`CONFLICT ${c.date} "${c.bank_text}" resolves to ${c.resolves_to} but is linked to ${c.linked_supplier} (tx ${c.transaction_id}, expense ${c.linked_expense_id})\n`);
-    const saved = await saveLearnedAliases(aliases);
-    process.stdout.write(`${links_examined} linked payments examined; ${saved.added} new alias(es), ${saved.total} learned in ${saved.file}\n`);
+    process.stdout.write(`${links_examined} linked payments examined; ${aliases.length} proposal(s).\n`);
+    if (process.argv.includes("--write")) {
+      const saved = await saveLearnedAliases(aliases);
+      process.stdout.write(`${saved.added} new alias(es), ${saved.total} learned in ${saved.file}\n`);
+    } else {
+      process.stdout.write("Dry run: review the list, then re-run with --write (or let the agent review via accountable_learn_suppliers).\n");
+    }
     return;
   }
   if (process.argv[2] === "browser-login") {

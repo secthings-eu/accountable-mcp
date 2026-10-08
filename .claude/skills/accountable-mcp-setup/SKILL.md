@@ -124,13 +124,34 @@ bw unlock --raw > ~/.config/accountable-mcp/bw-session && chmod 600 ~/.config/ac
 - Only if Accountable logged that profile out does the user see "Refresh token expired … run
   browser-login" → repeat the in-session login.
 
-## 4b. Learn the user's suppliers (once logged in)
+## 4b. Learn the user's suppliers (once logged in) — you are the reviewer
 
-Call `accountable_learn_suppliers` (default: links since 1 January of last year; `dry_run: true` to only
-propose). It reads bank transactions already linked to expenses and stores "bank text → supplier" aliases
-in `~/.config/accountable-mcp/providers.json` (`learned_aliases`), which the importer's payment matching
-and the coverage reports use. Show the user the proposed list; prune odd ones by editing the file.
-Re-run after a reconciliation pass so new suppliers are picked up. Restart the MCP afterwards.
+The MCP extracts evidence, **you** judge it, and only what you approve is written to
+`~/.config/accountable-mcp/providers.json`. Nothing is written to Accountable.
+
+**Aliases (bank text → supplier name).**
+1. `accountable_learn_suppliers` (default: links since 1 Jan last year) → `proposed` with evidence and `conflicts`.
+2. Review each proposal:
+   - keep: a genuine synonym of one supplier (`deco center` → Construct Center, `claude.ai subscription` → Anthropic,
+     a merchant string with shop codes stripped);
+   - drop: generic words (countries, cities, "paiement", "shop"), card-terminal noise, anything that could match
+     several suppliers, one-off shops the user will not see again;
+   - unsure → ask the user, showing `seen` texts.
+3. `accountable_save_supplier_aliases` with the kept list (`replace: true` to rewrite the learned set).
+4. `conflicts` are payments whose bank text is one known brand but linked to another supplier's expense: report
+   them to the user as probable wrong links (fix with `accountable_link_transaction`), never turn them into aliases.
+
+**Provider modules (where a supplier's invoices live).**
+1. `accountable_propose_providers` → recurring suppliers whose documents are added by hand and have no module.
+   `skipped_automatic` (Peppol/email forwarding) and `skipped_no_documents` (document-less patterns) need nothing.
+2. For each candidate, find the source: `accountable_gmail_search` with 1–3 queries (`from:` the vendor's billing
+   domain, `subject:invoice`, `has:attachment filename:pdf`) in the connected mailbox(es). Good module = the same
+   sender and a stable attachment-name pattern across months. If invoices are only on a portal, record it as
+   `kind: "portal"` with the URL and a note on where to click.
+3. Confirm with the user which suppliers matter, then `accountable_save_providers`. Restart the MCP; verify with
+   `accountable_fetch_invoices` on a short range.
+
+Re-run both after a reconciliation pass; terminal equivalent for aliases: `npm run learn-suppliers -- --write`.
 
 ## 5. Gmail (invoice fetching, read-only)
 

@@ -42,7 +42,7 @@ Then in Claude Code (the skills are picked up automatically when the folder is o
 accountable_login_start  {site: "accountable"}     → a Camoufox window opens, sign in there
 accountable_login_check  {site: "accountable"}     → "logged_in": session stored, renews itself
 accountable_session_status
-accountable_learn_suppliers                        → learns your suppliers' bank names into ~/.config/accountable-mcp/providers.json
+accountable_learn_suppliers / accountable_propose_providers   → evidence; the agent reviews and saves what you approve
 ```
 
 Optional: Gmail (`google-oauth.json` + `accountable_login_start {site:"gmail"}`), AliExpress
@@ -51,6 +51,15 @@ then `accountable_login_fill`). Full detail in `.claude/skills/accountable-mcp-s
 
 Everything is project-local (no global installs, no Chrome, no Python); runtime state lives in
 `~/.config/accountable-mcp/`.
+
+## Configuration with the agent in the loop
+
+Supplier aliases and invoice-fetching modules are personal, so they live in
+`~/.config/accountable-mcp/providers.json`, not in the repo — and they are built *with* the agent rather
+than by a heuristic: extraction tools return evidence (`accountable_learn_suppliers` from your linked
+payments, `accountable_propose_providers` from your hand-added expenses, `accountable_gmail_search` to test
+a query), the agent reviews it following the setup skill's rules and asks you when unsure, and save tools
+write only the approved entries. Contradictory links surface as `conflicts` to fix in Accountable.
 
 ## Skills shipped in this repo
 
@@ -78,7 +87,7 @@ from other projects, copy the two folders into `~/.claude/skills/`.
 | `accountable_classify_transaction` (incl. tax periods), `accountable_link_transaction` (1 payment → N documents), `accountable_unlink_transaction_document`, `accountable_unclassify_transaction` | write |
 | `accountable_list_revenues`, `accountable_get_revenue` | read |
 | `accountable_list_invoice_providers`, `accountable_fetch_invoices`, `accountable_import_invoices` | invoices |
-| `accountable_learn_suppliers` (bank text → supplier aliases learned from your own linked payments, stored locally) | setup |
+| `accountable_learn_suppliers` → `accountable_save_supplier_aliases`, `accountable_propose_providers` + `accountable_gmail_search` → `accountable_save_providers` (agent-reviewed configuration, stored locally) | setup |
 
 All tools were verified live (test account for writes, then real data). Not implemented yet:
 revenue creation, VAT return grids, exports, portal modules for suppliers without email invoices
