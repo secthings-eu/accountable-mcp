@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "accountable": {
+      "command": "node",
+      "args": ["dist/index.js"]
+    }
+  }
+}
