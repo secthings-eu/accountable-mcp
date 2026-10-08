@@ -2,7 +2,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { CONFIG_DIR } from "../constants.js";
 import { LOCAL_PROVIDERS_FILE } from "../invoices/localConfig.js";
 import { listExpensesBetween, type Expense } from "./expenses.js";
-import { normalizeSupplier } from "./suppliers.js";
+import { matchedBrand, normalizeSupplier } from "./suppliers.js";
 import { fetchPage } from "../tools/transactions.js";
 
 /**
@@ -27,6 +27,9 @@ const merchantText = (t: { counterPartyName?: string; communication?: string }) 
 };
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// Marketplaces / payment processors: their payments legitimately belong to many different suppliers.
+const INTERMEDIARIES = new Set(["amazon", "aliexpress", "paypal", "stripe", "mollie", "sumup", "zettle", "adyen", "ppro", "apple"]);
 
 // Words that never identify a supplier on their own (countries, cities, payment words, legal forms).
 const STOP = new Set([
@@ -82,7 +85,9 @@ export async function learnSupplierAliases(
           examined++;
           const norm = normalizeSupplier(text);
           if (norm.key === target.key) continue; // already resolved
-          if (norm.display !== text.split("|")[0].trim()) {
+          const brand = matchedBrand(text);
+          if (brand && INTERMEDIARIES.has(brand.toLowerCase())) continue; // marketplace debit → any seller
+          if (brand) {
             // The bank text already resolves to a *different* known brand: that is a wrong link, not a synonym.
             conflicts.push({ transaction_id: t._id, date: (t.valueDate ?? "").slice(0, 10), bank_text: text, resolves_to: norm.display, linked_expense_id: e!._id, linked_supplier: supplier });
             continue;

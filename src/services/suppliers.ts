@@ -37,6 +37,14 @@ export interface SupplierKey {
   display: string;
 }
 
+/** The brand a raw name resolves to through the alias list, or null when no alias matches. */
+export function matchedBrand(raw: string | undefined | null): string | null {
+  const name = (raw ?? "").split("|")[0].trim();
+  const ordered = [...BRAND_ALIASES].sort((a, b) => (a[1] === "AWS" ? -1 : b[1] === "AWS" ? 1 : 0));
+  for (const [re, brand] of ordered) if (re.test(name)) return brand;
+  return null;
+}
+
 export function normalizeSupplier(raw: string | undefined | null): SupplierKey {
   const name = (raw ?? "").split("|")[0].trim() || "(unknown)";
   // AWS must be checked before the generic Amazon alias.
