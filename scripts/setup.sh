@@ -24,6 +24,19 @@ done
 
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 
+# Ask up front (the install step can take minutes on a first run).
+if [ -z "$TARGET" ]; then
+  if [ -t 0 ]; then
+    printf '\nWhere do you want to use the Accountable MCP?  [1] Claude Code  [2] Claude Desktop  [3] both  (default 1)\n'
+    read -r -p "> " choice
+    case "${choice:-1}" in 2) TARGET=desktop ;; 3) TARGET=both ;; *) TARGET=code ;; esac
+  else
+    TARGET=code
+  fi
+fi
+case "$TARGET" in code|desktop|both) ;; *) echo "invalid --target '$TARGET' (code|desktop|both)"; exit 1 ;; esac
+echo "Target: $TARGET"
+
 say "1/5  Checking prerequisites"
 command -v node >/dev/null || { echo "Node.js >= 20 is required (https://nodejs.org)."; exit 1; }
 NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
@@ -50,15 +63,6 @@ mkdir -p "$CONFIG_DIR" && chmod 700 "$CONFIG_DIR"
 echo "$CONFIG_DIR (sessions, Camoufox profiles, invoice ledger, your providers.json)"
 
 say "4/5  Registering the MCP server"
-if [ -z "$TARGET" ]; then
-  if [ -t 0 ]; then
-    echo "Where do you want to use it?  [1] Claude Code  [2] Claude Desktop  [3] both  (default 1)"
-    read -r -p "> " choice
-    case "${choice:-1}" in 2) TARGET=desktop ;; 3) TARGET=both ;; *) TARGET=code ;; esac
-  else
-    TARGET=code
-  fi
-fi
 
 ENTRY="$PWD/dist/index.js"
 
