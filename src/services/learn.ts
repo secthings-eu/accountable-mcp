@@ -51,14 +51,27 @@ function patternFor(text: string): string | null {
   return words.map(escapeRe).join("\\s*");
 }
 
-export async function learnSupplierAliases(since: string, until: string): Promise<{ aliases: LearnedAlias[]; links_examined: number }> {
+export interface LinkConflict {
+  transaction_id: string;
+  date: string;
+  bank_text: string;
+  resolves_to: string;
+  linked_expense_id: string;
+  linked_supplier: string;
+}
+
+export async function learnSupplierAliases(
+  since: string,
+  until: string,
+): Promise<{ aliases: LearnedAlias[]; conflicts: LinkConflict[]; links_examined: number }> {
+  const conflicts: LinkConflict[] = [];
   const expenses = await listExpensesBetween(since, until);
   const byId = new Map<string, Expense>(expenses.map((e) => [e._id, e]));
   const proposals = new Map<string, LearnedAlias>();
   let examined = 0;
   for (let page = 1; ; page++) {
     const r = await fetchPage(page, 100);
-    for (const t of r.data as Array<{ valueDate?: string; counterPartyName?: string; communication?: string; matchedItems?: Array<{ type: string; documentId: string }> }>) {
+    for (const t of r.data as Array<{ _id: string; valueDate?: string; counterPartyName?: string; communication?: string; matchedItems?: Array<{ type: string; documentId: string }> }>) {
       if ((t.valueDate ?? "").slice(0, 10) < since) continue;
       for (const m of t.matchedItems ?? []) {
         const e = m.type === "expense" ? byId.get(m.documentId) : undefined;
@@ -67,7 +80,13 @@ export async function learnSupplierAliases(since: string, until: string): Promis
         const target = normalizeSupplier(supplier);
         for (const text of merchantText(t)) {
           examined++;
-          if (normalizeSupplier(text).key === target.key) continue; // already resolved
+          const norm = normalizeSupplier(text);
+          if (norm.key === target.key) continue; // already resolved
+          if (norm.display !== text.split("|")[0].trim()) {
+            // The bank text already resolves to a *different* known brand: that is a wrong link, not a synonym.
+            conflicts.push({ transaction_id: t._id, date: (t.valueDate ?? "").slice(0, 10), bank_text: text, resolves_to: norm.display, linked_expense_id: e!._id, linked_supplier: supplier });
+            continue;
+          }
           const pattern = patternFor(text);
           if (!pattern) continue;
           const k = `${pattern}→${target.display}`;
@@ -84,7 +103,9 @@ export async function learnSupplierAliases(since: string, until: string): Promis
   const byPattern = new Map<string, Set<string>>();
   for (const a of proposals.values()) byPattern.set(a.pattern, (byPattern.get(a.pattern) ?? new Set()).add(a.display));
   const aliases = [...proposals.values()].filter((a) => byPattern.get(a.pattern)!.size === 1).sort((a, b) => b.count - a.count);
-  return { aliases, links_examined: examined };
+  const seenConflict = new Set<string>();
+  const uniqueConflicts = conflicts.filter((c) => !seenConflict.has(c.transaction_id) && seenConflict.add(c.transaction_id));
+  return { aliases, conflicts: uniqueConflicts, links_examined: examined };
 }
 
 /** Merge learned aliases into providers.json (`learned_aliases`), without touching hand-written ones. */
