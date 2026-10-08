@@ -11,7 +11,7 @@ import type { InvoiceProvider } from "./providers.js";
  *   "providers": [ { "id": "...", "supplier": "...", "source": { "kind": "gmail-attachment", "mailboxes": ["work"],
  *                    "query": "from:billing@example.com", "attachment": "^Invoice.*\\.pdf$" } } ],
  *   "supplier_aliases": [ ["^my\\s*leasing", "My Leasing"] ],
- *   "learned_aliases":  [ ["deco\\s*center", "Construct Center"] ]   // maintained by accountable_learn_suppliers
+ *   "learned_aliases":  [ ["acme\\s*store", "ACME Stores"] ]   // maintained by accountable_learn_suppliers
  * }
  *
  * `attachment` / `subject` are case-insensitive regex sources. Local entries are appended after the built-in ones

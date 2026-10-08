@@ -28,6 +28,15 @@ const merchantText = (t: { counterPartyName?: string; communication?: string }) 
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+// Words that never identify a supplier on their own (countries, cities, payment words, legal forms).
+const STOP = new Set([
+  "belgium", "belgique", "belgie", "belgië", "nederland", "netherlands", "france", "deutschland", "germany", "luxembourg", "europe", "eu",
+  "brussel", "bruxelles", "brussels", "namur", "liege", "liège", "antwerpen", "gent", "charleroi", "dublin", "london", "paris", "amsterdam",
+  "paiement", "payment", "betaling", "virement", "overschrijving", "domiciliation", "mobile", "carte", "card", "debit", "credit", "cb",
+  "sa", "nv", "srl", "sprl", "bv", "bvba", "gmbh", "ltd", "llc", "inc", "sas", "sarl", "the", "le", "la", "les", "de", "du", "des", "van", "der",
+  "shop", "store", "online", "pay", "bck", "sumup", "zettle", "mollie", "stripe", "paypal", "ppro", "adyen",
+]);
+
 /** Pattern from the first two meaningful words of a bank text (case-insensitive, flexible spacing). */
 function patternFor(text: string): string | null {
   const words = text
@@ -36,7 +45,9 @@ function patternFor(text: string): string | null {
     .split(/\s+/)
     .filter((w) => w.length >= 2 && !/^\d+$/.test(w) && !/^[a-z]{2}\d{4,}$/.test(w) && !/^[0-9a-f]{6,}$/i.test(w))
     .slice(0, 2);
-  if (!words.length) return null;
+  // Need at least one distinctive word: not a stop word, at least 4 letters (or two words together).
+  const distinctive = words.filter((w) => !STOP.has(w) && /[a-z]{3,}/.test(w));
+  if (!distinctive.length || (words.length === 1 && words[0].length < 4)) return null;
   return words.map(escapeRe).join("\\s*");
 }
 
